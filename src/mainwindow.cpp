@@ -643,7 +643,7 @@ void KeepassMainWindow::OnFileClose(){
 
 void KeepassMainWindow::setStateFileOpen(bool IsOpen){
 	FileOpen=IsOpen;
-	FileSaveAction->setEnabled(IsOpen);
+	FileSaveAction->setEnabled(IsOpen && !dbReadOnly);
 	FileSaveAsAction->setEnabled(IsOpen);
 	FileCloseAction->setEnabled(IsOpen||IsLocked);
 	FileSettingsAction->setEnabled(IsOpen);
