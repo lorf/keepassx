@@ -552,6 +552,8 @@ bool Kdb3Database::loadReal(QString filename, bool readOnly, bool differentEncod
 	total_size=File->size();
 	char* buffer = new char[total_size];
 	File->read(buffer,total_size);
+
+	File->close();
 	
 	if(total_size < DB_HEADER_SIZE){
 		error=tr("Unexpected file size (DB_TOTAL_SIZE < DB_HEADER_SIZE)");
@@ -1353,17 +1355,17 @@ bool Kdb3Database::save(){
 		error=tr("The database must contain at least one group.");
 		return false;
 	}
+
+	if(openedReadOnly) {
+		error = tr("The database has been opened read-only.");
+		return false;
+	}
 	
 	if (!File->isOpen()) {
 		if(!File->open(QIODevice::ReadWrite)){
 			error=tr("Could not open file.");
 			return false;
 		}
-	}
-	
-	if(!(File->openMode() & QIODevice::WriteOnly)){
-		error = tr("The database has been opened read-only.");
-		return false;
 	}
 	
 	//Delete old backup entries
@@ -1536,11 +1538,6 @@ bool Kdb3Database::saveFileTransactional(char* buffer, int size) {
 		return false;
 	}
 	File = tmpFile;
-	if (!tmpFile->open(QIODevice::ReadWrite)) {
-		delete tmpFile;
-		return false;
-	}
-	
 	return true;
 }
 
@@ -1957,17 +1954,8 @@ void Kdb3Database::moveGroup(IGroupHandle* groupHandle,IGroupHandle* NewParent,i
 }
 
 bool Kdb3Database::changeFile(const QString& filename){
-	QFile* tmpFile = new QFile(filename);
-	if(!tmpFile->open(QIODevice::ReadWrite)){
-		error = decodeFileError(File->error());
-		delete tmpFile;
-		return false;
-	}
-	
-	if (File)
-		delete File;
-	
-	File = tmpFile;
+	File = new QFile(filename);
+	openedReadOnly = false;
 
 	return true;
 }
