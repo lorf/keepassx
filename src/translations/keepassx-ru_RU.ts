@@ -2076,6 +2076,10 @@ Do you want to save the changes?</source>
         <translation>Не удалось создать файл блокирования базы паролей. База паролей будет открыта только для чтения.</translation>
     </message>
     <message>
+        <source>Opening the database read-only.</source>
+        <translation>База паролей будет открыта только для чтения.</translation>
+    </message>
+    <message>
         <source>Information</source>
         <translation type="obsolete">Информация</translation>
     </message>
@@ -2858,6 +2862,10 @@ File is not readable.</source>
     <message>
         <source>Passwords are not equal.</source>
         <translation>Пароли не одинаковы.</translation>
+    </message>
+    <message>
+        <source>Open read-only</source>
+        <translation>Открыть только для чтения</translation>
     </message>
 </context>
 <context>

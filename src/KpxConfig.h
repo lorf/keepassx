@@ -116,6 +116,7 @@ public:
 	//bool featureBookmarks(){return settings.value("Features/Bookmarks",true).toBool();}
 	bool featureBookmarks(){return true;}
 	QString language(){return settings.value("Options/Language","auto").toString();}
+	bool openReadOnly(){return settings.value("Options/OpenReadOnly",false).toBool();}
 	
 	void setAlternatingRowColors(bool value){settings.setValue("Options/AlternatingRowColors",value);}
 	void setBannerColor1(const QColor& value){settings.setValue("Options/BannerColor1",colorToString(value));}
@@ -188,6 +189,7 @@ public:
 #endif
 	//void setFeatureBookmarks(bool value){settings.setValue("Features/Bookmarks",value);}
 	void setLanguage(const QString& value){settings.setValue("Options/Language",value);}
+	void setOpenReadOnly(bool value){settings.setValue("Options/OpenReadOnly",value);}
 
 	unsigned fileDlgHistorySize();
 	void clearFileDlgHistory(){settings.remove("FileDlgHistory");};

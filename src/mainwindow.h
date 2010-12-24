@@ -96,7 +96,7 @@ class KeepassMainWindow : public QMainWindow, private Ui_MainWindow{
 		void resetLock();
 		enum StatusBarMsg {
 			StatusBarReady, StatusBarLoading, StatusBarLoadingFailed,
-			StatusBarReadOnlyLock
+			StatusBarReadOnlyLock, StatusBarReadOnly
 		};
 		void setStatusBarMsg(StatusBarMsg statusBarMsg);
 		SelectionState GroupSelection, EntrySelection;

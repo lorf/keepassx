@@ -35,7 +35,8 @@ class PasswordDialog : public QDialog, private Ui_PasswordDlg {
 		
 		enum DlgFlags {
 			Flag_None = 0x00, 
-			Flag_Auto = 0x01  // Dialog was automatically opened on start-up	
+			Flag_Auto = 0x01,  // Dialog was automatically opened on start-up
+			Flag_OpenReadOnly = 0x02    // Open database in read-only mode
 		};
 		
 		enum DlgExit {
@@ -52,6 +53,7 @@ class PasswordDialog : public QDialog, private Ui_PasswordDlg {
 		QString selectedBookmark();
 		QString keyFile();
 		QString password();
+		bool openReadOnly();
 	
 	private slots:
 		void OnOK();

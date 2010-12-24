@@ -23,7 +23,6 @@
 PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const QString& filename)
 : QDialog(parent)
 {
-	Q_UNUSED(flags);
 	setupUi(this);
 	Mode=mode;
 	Filename=filename;
@@ -111,6 +110,10 @@ PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const
 			}
 		}
 	}*/
+	if (Mode!=Mode_Ask)
+		Check_OpenReadOnly->hide();
+	if (flags & Flag_OpenReadOnly)
+		Check_OpenReadOnly->setChecked(true);
 	
 	// Setting up the bookmark button
 	if(Mode==Mode_Ask && config->featureBookmarks()){
@@ -371,6 +374,10 @@ QString PasswordDialog::keyFile(){
 
 QString PasswordDialog::selectedBookmark(){
 	return BookmarkFilename;
+}
+
+bool PasswordDialog::openReadOnly(){
+	return Check_OpenReadOnly->isChecked();
 }
 
 void PasswordDialog::OnButtonBack(){

@@ -418,7 +418,7 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
 		return false;
 	}
 	
-	dbReadOnly = false;
+	dbReadOnly = config->openReadOnly();
 	
 	if (QFile::exists(filename+".lock")){
 		QMessageBox msgBox(this);
@@ -447,8 +447,10 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
 	}
 	db = new Kdb3Database();
 	PasswordDialog::DlgFlags flags=PasswordDialog::Flag_None;
-	if(IsAuto)
-		flags = PasswordDialog::Flag_Auto;
+//	if(IsAuto)
+//		flags = PasswordDialog::Flag_Auto;
+	if(dbReadOnly)
+		flags = PasswordDialog::Flag_OpenReadOnly;
 	PasswordDialog dlg(this,PasswordDialog::Mode_Ask,flags,filename);
 	if (InUnLock){
 		dlg.setWindowModality(Qt::WindowModal);
@@ -462,6 +464,9 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
 	
 	if(dlg.selectedBookmark()!=QString())
 		filename=dlg.selectedBookmark();
+	if(dlg.openReadOnly())
+		dbReadOnly=true;
+	config->setOpenReadOnly(dlg.openReadOnly());
 
 	GroupView->db=db;
 	EntryView->db=db;
@@ -506,8 +511,12 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
 			return false;
 		}
 	}
-	if (statusbarState != StatusBarReadOnlyLock)
-		setStatusBarMsg(StatusBarReady);
+	if (statusbarState != StatusBarReadOnlyLock){
+		if (dbReadOnly)
+			setStatusBarMsg(StatusBarReadOnly);
+		else
+			setStatusBarMsg(StatusBarReady);
+	}
 	inactivityCounter = 0;
 	
 	GroupView->selectFirstGroup();
@@ -1489,6 +1498,9 @@ void KeepassMainWindow::setStatusBarMsg(StatusBarMsg statusBarMsg) {
 			break;
 		case StatusBarReadOnlyLock:
 			text = tr("Couldn't create lock file. Opening the database read-only.");
+			break;
+		case StatusBarReadOnly:
+			text = tr("Opening the database read-only.");
 			break;
 	}
 	
