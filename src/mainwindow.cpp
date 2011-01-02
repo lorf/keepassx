@@ -443,7 +443,7 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
 	
 	if(dlg.selectedBookmark()!=QString())
 		filename=dlg.selectedBookmark();
-	dbReadOnly=dlg.openReadOnly()
+	dbReadOnly=dlg.openReadOnly();
 	config->setOpenReadOnly(dbReadOnly);
 
 	if (QFile::exists(filename+".lock")){
