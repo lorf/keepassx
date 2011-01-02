@@ -585,7 +585,7 @@ bool KeepassMainWindow::closeDatabase(bool lock){
 void KeepassMainWindow::OnFileNewKdb(){
 	IDatabase* db_new=dynamic_cast<IDatabase*>(new Kdb3Database());
 	db_new->create();
-	PasswordDialog dlg(this,PasswordDialog::Mode_Set,PasswordDialog::Flag_None,"New Database");
+	PasswordDialog dlg(this,PasswordDialog::Mode_Set,PASSWORDDIALOG_FLAG_NONE,"New Database");
 	if(dlg.exec()==PasswordDialog::Exit_Ok){
 		if(FileOpen)
 			if(!closeDatabase())return;
@@ -978,7 +978,7 @@ void KeepassMainWindow::OnFileSettings(){
 void KeepassMainWindow::OnFileChangeKey(){
 	QFile* file=db->file();
 	QString filename = file ? file->fileName() : QString();
-	PasswordDialog dlg(this,PasswordDialog::Mode_Change,PasswordDialog::Flag_None,filename);
+	PasswordDialog dlg(this,PasswordDialog::Mode_Change,PASSWORDDIALOG_FLAG_NONE,filename);
 	if(dlg.exec()==PasswordDialog::Exit_Ok){
 		db->setKey(dlg.password(),dlg.keyFile());
 		db->generateMasterKey();
@@ -1002,7 +1002,7 @@ void KeepassMainWindow::OnImport(QAction* action){
 	IDatabase* tmpdb=dynamic_cast<IDatabase*>(new Kdb3Database());
 	tmpdb->create();
 	if(dynamic_cast<IImport*>(action->data().value<QObject*>())->importDatabase(this,tmpdb)){
-		PasswordDialog dlg(this,PasswordDialog::Mode_Set,PasswordDialog::Flag_None,QString());
+		PasswordDialog dlg(this,PasswordDialog::Mode_Set,PASSWORDDIALOG_FLAG_NONE,QString());
 		if(dlg.exec()!=PasswordDialog::Exit_Ok){
 			delete tmpdb;
 			return;
