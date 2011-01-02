@@ -2077,7 +2077,7 @@ Do you want to save the changes?</source>
     </message>
     <message>
         <source>Opening the database read-only.</source>
-        <translation>База паролей открыта только для чтения.</translation>
+        <translation>База паролей будет открыта только для чтения.</translation>
     </message>
     <message>
         <source>Information</source>
