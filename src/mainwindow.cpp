@@ -419,7 +419,33 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
 	}
 	
 	dbReadOnly = config->openReadOnly();
+	int flags=PASSWORDDIALOG_FLAG_NONE;
 	
+	if(!IsAuto){
+		config->setLastKeyLocation(QString());
+		config->setLastKeyType(PASSWORD);
+	}
+	db = new Kdb3Database();
+//	if(IsAuto)
+//		flags |= PASSWORDDIALOG_FLAG_AUTO;
+	if(dbReadOnly)
+		flags |= PASSWORDDIALOG_FLAG_OPENREADONLY;
+	PasswordDialog dlg(this,PasswordDialog::Mode_Ask,flags,filename);
+	if (InUnLock){
+		dlg.setWindowModality(Qt::WindowModal);
+		unlockDlg = &dlg;
+	}
+	bool rejected = (dlg.exec()==PasswordDialog::Exit_Cancel);
+	if (InUnLock)
+		unlockDlg = NULL;
+	if (rejected)
+		return false;
+	
+	if(dlg.selectedBookmark()!=QString())
+		filename=dlg.selectedBookmark();
+	dbReadOnly=dlg.openReadOnly()
+	config->setOpenReadOnly(dbReadOnly);
+
 	if (QFile::exists(filename+".lock")){
 		QMessageBox msgBox(this);
 		msgBox.setIcon(QMessageBox::Question);
@@ -440,33 +466,6 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
 		else if (msgBox.clickedButton() == readOnlyButton)
 			dbReadOnly = true;
 	}
-	
-	if(!IsAuto){
-		config->setLastKeyLocation(QString());
-		config->setLastKeyType(PASSWORD);
-	}
-	db = new Kdb3Database();
-	PasswordDialog::DlgFlags flags=PasswordDialog::Flag_None;
-//	if(IsAuto)
-//		flags = PasswordDialog::Flag_Auto;
-	if(dbReadOnly)
-		flags = PasswordDialog::Flag_OpenReadOnly;
-	PasswordDialog dlg(this,PasswordDialog::Mode_Ask,flags,filename);
-	if (InUnLock){
-		dlg.setWindowModality(Qt::WindowModal);
-		unlockDlg = &dlg;
-	}
-	bool rejected = (dlg.exec()==PasswordDialog::Exit_Cancel);
-	if (InUnLock)
-		unlockDlg = NULL;
-	if (rejected)
-		return false;
-	
-	if(dlg.selectedBookmark()!=QString())
-		filename=dlg.selectedBookmark();
-	if(dlg.openReadOnly())
-		dbReadOnly=true;
-	config->setOpenReadOnly(dlg.openReadOnly());
 
 	GroupView->db=db;
 	EntryView->db=db;

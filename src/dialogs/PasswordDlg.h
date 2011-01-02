@@ -23,6 +23,9 @@
 #include <QPaintEvent>
 #include "ui_PasswordDlg.h"
 
+#define PASSWORDDIALOG_FLAG_NONE		0
+#define PASSWORDDIALOG_FLAG_AUTO		1 << 0	// Dialog was automatically opened on start-up, currently unused
+#define PASSWORDDIALOG_FLAG_OPENREADONLY	1 << 1	// Ask user to open database in read-only mode
 
 class PasswordDialog : public QDialog, private Ui_PasswordDlg {
 	Q_OBJECT
@@ -33,12 +36,6 @@ class PasswordDialog : public QDialog, private Ui_PasswordDlg {
 			Mode_Change   // Changing the password of a database
 		};
 		
-		enum DlgFlags {
-			Flag_None = 0x00, 
-			Flag_Auto = 0x01,  // Dialog was automatically opened on start-up
-			Flag_OpenReadOnly = 0x02    // Open database in read-only mode
-		};
-		
 		enum DlgExit {
 			Exit_Ok=QDialog::Accepted,
 			Exit_Cancel=QDialog::Rejected,
@@ -47,7 +44,7 @@ class PasswordDialog : public QDialog, private Ui_PasswordDlg {
 		
 		typedef bool (KeyFileGenProc)(const QString& filename,QString* error);
 			
-		PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const QString& filename=QString());
+		PasswordDialog(QWidget* parent,DlgMode mode,int flags,const QString& filename=QString());
 		
 		// result functions
 		QString selectedBookmark();

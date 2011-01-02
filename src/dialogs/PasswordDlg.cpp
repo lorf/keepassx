@@ -20,7 +20,7 @@
 #include <QTimer>
 #include "dialogs/PasswordDlg.h"
 
-PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const QString& filename)
+PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,int flags,const QString& filename)
 : QDialog(parent)
 {
 	setupUi(this);
@@ -86,7 +86,7 @@ PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const
 	if(Mode!=Mode_Set && Mode!=Mode_Change){
 		Button_GenKeyFile->hide();
 	}
-	/*if(flags & Flag_Auto){
+	/*if(flags & PASSWORDDIALOG_FLAG_AUTO){
 		/ *
 		QPushButton* Button_Quit = buttonBox->addButton(tr("Quit"),QDialogButtonBox::DestructiveRole);
 		connect(Button_Quit,SIGNAL(clicked()),this,SLOT(OnButtonQuit()));
@@ -112,7 +112,7 @@ PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const
 	}*/
 	if (Mode!=Mode_Ask)
 		Check_OpenReadOnly->hide();
-	if (flags & Flag_OpenReadOnly)
+	if (flags & PASSWORDDIALOG_FLAG_OPENREADONLY)
 		Check_OpenReadOnly->setChecked(true);
 	
 	// Setting up the bookmark button
