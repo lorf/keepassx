@@ -1464,7 +1464,7 @@ void KeepassMainWindow::OnBookmarkTriggered(QAction* action){
 		}
 	}
 	else {
-		openDatabase(KpxBookmarks::path(action->data().toInt()));
+		openFile(KpxBookmarks::path(action->data().toInt()));
 	}
 }
 
