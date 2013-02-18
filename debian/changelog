@@ -1,3 +1,9 @@
+keepassx (0.4.3-1ubuntu3sharing4) oneiric; urgency=low
+
+  * Added database sharing patch revision 4
+
+ -- Dmitry Frolov (Launchpad.net) <dmitry.frolov@gmail.com>  Mon, 18 Feb 2013 17:54:29 +0700
+
 keepassx (0.4.3-1ubuntu3) quantal; urgency=low
 
   * import fix_ftbfs_gcc47.diff from debian

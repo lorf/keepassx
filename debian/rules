@@ -5,6 +5,7 @@
 	dh $@
 
 override_dh_auto_configure:
+	./translations_release.sh
 	qmake-qt4 -makefile -nocache QMAKE_STRIP=: PREFIX=/usr \
 		QMAKE_CXXFLAGS_RELEASE="$(CXXFLAGS)" \
 		QMAKE_CFLAGS_RELEASE="$(CFLAGS)" \
