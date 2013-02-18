@@ -1,0 +1,3 @@
+check_systray_available.diff
+fix_ftbfs_gcc47.diff
+01_readonly

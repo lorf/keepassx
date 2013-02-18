@@ -1,0 +1,420 @@
+diff --git a/README.rst b/README.rst
+new file mode 100644
+index 0000000..6eccfe9
+--- /dev/null
++++ b/README.rst
+@@ -0,0 +1,17 @@
++KeePassX with password database sharing
++=======================================
++
++These changes allow multiple KeePassX instances to open same file (e.g. on a
++network share) for reading.
++
++All the changes are done against stock keepassx 0.4.3.
++
++What is done:
++
++ * Don't keep database file open, close it just after loading.
++ * Option to open database file in read-only mode.
++ * Disabled "Save" button in read-only mode.
++
++TODO:
++
++ * Disable all database changing actions in the GUI in read-only mode.
+diff --git a/src/Kdb3Database.cpp b/src/Kdb3Database.cpp
+index 86913bc..b8308c4 100644
+--- a/src/Kdb3Database.cpp
++++ b/src/Kdb3Database.cpp
+@@ -552,6 +552,8 @@ bool Kdb3Database::loadReal(QString filename, bool readOnly, bool differentEncod
+ 	total_size=File->size();
+ 	char* buffer = new char[total_size];
+ 	File->read(buffer,total_size);
++
++	File->close();
+ 	
+ 	if(total_size < DB_HEADER_SIZE){
+ 		error=tr("Unexpected file size (DB_TOTAL_SIZE < DB_HEADER_SIZE)");
+@@ -1353,6 +1355,11 @@ bool Kdb3Database::save(){
+ 		error=tr("The database must contain at least one group.");
+ 		return false;
+ 	}
++
++	if(openedReadOnly) {
++		error = tr("The database has been opened read-only.");
++		return false;
++	}
+ 	
+ 	if (!File->isOpen()) {
+ 		if(!File->open(QIODevice::ReadWrite)){
+@@ -1361,11 +1368,6 @@ bool Kdb3Database::save(){
+ 		}
+ 	}
+ 	
+-	if(!(File->openMode() & QIODevice::WriteOnly)){
+-		error = tr("The database has been opened read-only.");
+-		return false;
+-	}
+-	
+ 	//Delete old backup entries
+ 	if (config->backup() && config->backupDelete() && config->backupDeleteAfter()>0 && backupGroup()){
+ 		QDateTime time = QDateTime::currentDateTime().addDays(-config->backupDeleteAfter());
+@@ -1536,11 +1538,6 @@ bool Kdb3Database::saveFileTransactional(char* buffer, int size) {
+ 		return false;
+ 	}
+ 	File = tmpFile;
+-	if (!tmpFile->open(QIODevice::ReadWrite)) {
+-		delete tmpFile;
+-		return false;
+-	}
+-	
+ 	return true;
+ }
+ 
+@@ -1957,17 +1954,8 @@ void Kdb3Database::moveGroup(IGroupHandle* groupHandle,IGroupHandle* NewParent,i
+ }
+ 
+ bool Kdb3Database::changeFile(const QString& filename){
+-	QFile* tmpFile = new QFile(filename);
+-	if(!tmpFile->open(QIODevice::ReadWrite)){
+-		error = decodeFileError(File->error());
+-		delete tmpFile;
+-		return false;
+-	}
+-	
+-	if (File)
+-		delete File;
+-	
+-	File = tmpFile;
++	File = new QFile(filename);
++	openedReadOnly = false;
+ 
+ 	return true;
+ }
+diff --git a/src/KpxConfig.h b/src/KpxConfig.h
+index 2de2c15..1e722a6 100644
+--- a/src/KpxConfig.h
++++ b/src/KpxConfig.h
+@@ -116,6 +116,7 @@ public:
+ 	//bool featureBookmarks(){return settings.value("Features/Bookmarks",true).toBool();}
+ 	bool featureBookmarks(){return true;}
+ 	QString language(){return settings.value("Options/Language","auto").toString();}
++	bool openReadOnly(){return settings.value("Options/OpenReadOnly",false).toBool();}
+ 	
+ 	void setAlternatingRowColors(bool value){settings.setValue("Options/AlternatingRowColors",value);}
+ 	void setBannerColor1(const QColor& value){settings.setValue("Options/BannerColor1",colorToString(value));}
+@@ -188,6 +189,7 @@ public:
+ #endif
+ 	//void setFeatureBookmarks(bool value){settings.setValue("Features/Bookmarks",value);}
+ 	void setLanguage(const QString& value){settings.setValue("Options/Language",value);}
++	void setOpenReadOnly(bool value){settings.setValue("Options/OpenReadOnly",value);}
+ 
+ 	unsigned fileDlgHistorySize();
+ 	void clearFileDlgHistory(){settings.remove("FileDlgHistory");};
+diff --git a/src/dialogs/PasswordDlg.cpp b/src/dialogs/PasswordDlg.cpp
+index f9c3a30..b574817 100644
+--- a/src/dialogs/PasswordDlg.cpp
++++ b/src/dialogs/PasswordDlg.cpp
+@@ -20,10 +20,9 @@
+ #include <QTimer>
+ #include "dialogs/PasswordDlg.h"
+ 
+-PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const QString& filename)
++PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,int flags,const QString& filename)
+ : QDialog(parent)
+ {
+-	Q_UNUSED(flags);
+ 	setupUi(this);
+ 	Mode=mode;
+ 	Filename=filename;
+@@ -87,7 +86,7 @@ PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const
+ 	if(Mode!=Mode_Set && Mode!=Mode_Change){
+ 		Button_GenKeyFile->hide();
+ 	}
+-	/*if(flags & Flag_Auto){
++	/*if(flags & PASSWORDDIALOG_FLAG_AUTO){
+ 		/ *
+ 		QPushButton* Button_Quit = buttonBox->addButton(tr("Quit"),QDialogButtonBox::DestructiveRole);
+ 		connect(Button_Quit,SIGNAL(clicked()),this,SLOT(OnButtonQuit()));
+@@ -111,6 +110,10 @@ PasswordDialog::PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const
+ 			}
+ 		}
+ 	}*/
++	if (Mode!=Mode_Ask)
++		Check_OpenReadOnly->hide();
++	if (flags & PASSWORDDIALOG_FLAG_OPENREADONLY)
++		Check_OpenReadOnly->setChecked(true);
+ 	
+ 	// Setting up the bookmark button
+ 	if(Mode==Mode_Ask && config->featureBookmarks()){
+@@ -373,6 +376,10 @@ QString PasswordDialog::selectedBookmark(){
+ 	return BookmarkFilename;
+ }
+ 
++bool PasswordDialog::openReadOnly(){
++	return Check_OpenReadOnly->isChecked();
++}
++
+ void PasswordDialog::OnButtonBack(){
+ 	stackedWidget->setCurrentIndex(0);
+ 	Edit_PwRepeat->clear();
+diff --git a/src/dialogs/PasswordDlg.h b/src/dialogs/PasswordDlg.h
+index 4e2f9e6..d72c532 100644
+--- a/src/dialogs/PasswordDlg.h
++++ b/src/dialogs/PasswordDlg.h
+@@ -23,6 +23,9 @@
+ #include <QPaintEvent>
+ #include "ui_PasswordDlg.h"
+ 
++#define PASSWORDDIALOG_FLAG_NONE		0
++#define PASSWORDDIALOG_FLAG_AUTO		1 << 0	// Dialog was automatically opened on start-up, currently unused
++#define PASSWORDDIALOG_FLAG_OPENREADONLY	1 << 1	// Ask user to open database in read-only mode
+ 
+ class PasswordDialog : public QDialog, private Ui_PasswordDlg {
+ 	Q_OBJECT
+@@ -33,11 +36,6 @@ class PasswordDialog : public QDialog, private Ui_PasswordDlg {
+ 			Mode_Change   // Changing the password of a database
+ 		};
+ 		
+-		enum DlgFlags {
+-			Flag_None = 0x00, 
+-			Flag_Auto = 0x01  // Dialog was automatically opened on start-up	
+-		};
+-		
+ 		enum DlgExit {
+ 			Exit_Ok=QDialog::Accepted,
+ 			Exit_Cancel=QDialog::Rejected,
+@@ -46,12 +44,13 @@ class PasswordDialog : public QDialog, private Ui_PasswordDlg {
+ 		
+ 		typedef bool (KeyFileGenProc)(const QString& filename,QString* error);
+ 			
+-		PasswordDialog(QWidget* parent,DlgMode mode,DlgFlags flags,const QString& filename=QString());
++		PasswordDialog(QWidget* parent,DlgMode mode,int flags,const QString& filename=QString());
+ 		
+ 		// result functions
+ 		QString selectedBookmark();
+ 		QString keyFile();
+ 		QString password();
++		bool openReadOnly();
+ 	
+ 	private slots:
+ 		void OnOK();
+diff --git a/src/forms/PasswordDlg.ui b/src/forms/PasswordDlg.ui
+index 0c4da1d..6bedbf8 100644
+--- a/src/forms/PasswordDlg.ui
++++ b/src/forms/PasswordDlg.ui
+@@ -89,6 +89,16 @@
+     </layout>
+    </item>
+    <item>
++    <widget class="QCheckBox" name="Check_OpenReadOnly" >
++     <property name="text" >
++      <string>Open read-only</string>
++     </property>
++     <property name="checked" >
++      <bool>false</bool>
++     </property>
++    </widget>
++   </item>
++   <item>
+     <widget class="QLabel" name="textLabel1" >
+      <property name="sizePolicy" >
+       <sizepolicy vsizetype="Maximum" hsizetype="Expanding" >
+@@ -315,6 +325,7 @@
+  <layoutdefault spacing="6" margin="11" />
+  <tabstops>
+   <tabstop>Button_Bookmarks</tabstop>
++  <tabstop>Check_OpenReadOnly</tabstop>
+   <tabstop>Check_Password</tabstop>
+   <tabstop>Edit_Password</tabstop>
+   <tabstop>ButtonChangeEchoMode</tabstop>
+diff --git a/src/keepassx.h b/src/keepassx.h
+index dd56575..c3a0aff 100644
+--- a/src/keepassx.h
++++ b/src/keepassx.h
+@@ -26,7 +26,7 @@
+ #define APP_CODE_NAME       "keepassx"
+ #define APP_SHORT_FUNC      "Password Manager"
+ #define APP_LONG_FUNC       "Cross Platform Password Manager"
+-#define APP_VERSION         "0.4.3"
++#define APP_VERSION         "0.4.3-4"
+ 
+ #define BUILTIN_ICONS 69
+ 
+diff --git a/src/mainwindow.cpp b/src/mainwindow.cpp
+index 556ee3a..94def50 100644
+--- a/src/mainwindow.cpp
++++ b/src/mainwindow.cpp
+@@ -418,8 +418,34 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
+ 		return false;
+ 	}
+ 	
+-	dbReadOnly = false;
++	dbReadOnly = config->openReadOnly();
++	int flags=PASSWORDDIALOG_FLAG_NONE;
+ 	
++	if(!IsAuto){
++		config->setLastKeyLocation(QString());
++		config->setLastKeyType(PASSWORD);
++	}
++	db = new Kdb3Database();
++//	if(IsAuto)
++//		flags |= PASSWORDDIALOG_FLAG_AUTO;
++	if(dbReadOnly)
++		flags |= PASSWORDDIALOG_FLAG_OPENREADONLY;
++	PasswordDialog dlg(this,PasswordDialog::Mode_Ask,flags,filename);
++	if (InUnLock){
++		dlg.setWindowModality(Qt::WindowModal);
++		unlockDlg = &dlg;
++	}
++	bool rejected = (dlg.exec()==PasswordDialog::Exit_Cancel);
++	if (InUnLock)
++		unlockDlg = NULL;
++	if (rejected)
++		return false;
++	
++	if(dlg.selectedBookmark()!=QString())
++		filename=dlg.selectedBookmark();
++	dbReadOnly=dlg.openReadOnly();
++	config->setOpenReadOnly(dbReadOnly);
++
+ 	if (QFile::exists(filename+".lock")){
+ 		QMessageBox msgBox(this);
+ 		msgBox.setIcon(QMessageBox::Question);
+@@ -440,28 +466,6 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
+ 		else if (msgBox.clickedButton() == readOnlyButton)
+ 			dbReadOnly = true;
+ 	}
+-	
+-	if(!IsAuto){
+-		config->setLastKeyLocation(QString());
+-		config->setLastKeyType(PASSWORD);
+-	}
+-	db = new Kdb3Database();
+-	PasswordDialog::DlgFlags flags=PasswordDialog::Flag_None;
+-	if(IsAuto)
+-		flags = PasswordDialog::Flag_Auto;
+-	PasswordDialog dlg(this,PasswordDialog::Mode_Ask,flags,filename);
+-	if (InUnLock){
+-		dlg.setWindowModality(Qt::WindowModal);
+-		unlockDlg = &dlg;
+-	}
+-	bool rejected = (dlg.exec()==PasswordDialog::Exit_Cancel);
+-	if (InUnLock)
+-		unlockDlg = NULL;
+-	if (rejected)
+-		return false;
+-	
+-	if(dlg.selectedBookmark()!=QString())
+-		filename=dlg.selectedBookmark();
+ 
+ 	GroupView->db=db;
+ 	EntryView->db=db;
+@@ -506,8 +510,12 @@ bool KeepassMainWindow::openDatabase(QString filename,bool IsAuto){
+ 			return false;
+ 		}
+ 	}
+-	if (statusbarState != StatusBarReadOnlyLock)
+-		setStatusBarMsg(StatusBarReady);
++	if (statusbarState != StatusBarReadOnlyLock){
++		if (dbReadOnly)
++			setStatusBarMsg(StatusBarReadOnly);
++		else
++			setStatusBarMsg(StatusBarReady);
++	}
+ 	inactivityCounter = 0;
+ 	
+ 	GroupView->selectFirstGroup();
+@@ -577,7 +585,7 @@ bool KeepassMainWindow::closeDatabase(bool lock){
+ void KeepassMainWindow::OnFileNewKdb(){
+ 	IDatabase* db_new=dynamic_cast<IDatabase*>(new Kdb3Database());
+ 	db_new->create();
+-	PasswordDialog dlg(this,PasswordDialog::Mode_Set,PasswordDialog::Flag_None,"New Database");
++	PasswordDialog dlg(this,PasswordDialog::Mode_Set,PASSWORDDIALOG_FLAG_NONE,"New Database");
+ 	if(dlg.exec()==PasswordDialog::Exit_Ok){
+ 		if(FileOpen)
+ 			if(!closeDatabase())return;
+@@ -634,7 +642,7 @@ void KeepassMainWindow::OnFileClose(){
+ 
+ void KeepassMainWindow::setStateFileOpen(bool IsOpen){
+ 	FileOpen=IsOpen;
+-	FileSaveAction->setEnabled(IsOpen);
++	FileSaveAction->setEnabled(IsOpen && !dbReadOnly);
+ 	FileSaveAsAction->setEnabled(IsOpen);
+ 	FileCloseAction->setEnabled(IsOpen||IsLocked);
+ 	FileSettingsAction->setEnabled(IsOpen);
+@@ -970,7 +978,7 @@ void KeepassMainWindow::OnFileSettings(){
+ void KeepassMainWindow::OnFileChangeKey(){
+ 	QFile* file=db->file();
+ 	QString filename = file ? file->fileName() : QString();
+-	PasswordDialog dlg(this,PasswordDialog::Mode_Change,PasswordDialog::Flag_None,filename);
++	PasswordDialog dlg(this,PasswordDialog::Mode_Change,PASSWORDDIALOG_FLAG_NONE,filename);
+ 	if(dlg.exec()==PasswordDialog::Exit_Ok){
+ 		db->setKey(dlg.password(),dlg.keyFile());
+ 		db->generateMasterKey();
+@@ -994,7 +1002,7 @@ void KeepassMainWindow::OnImport(QAction* action){
+ 	IDatabase* tmpdb=dynamic_cast<IDatabase*>(new Kdb3Database());
+ 	tmpdb->create();
+ 	if(dynamic_cast<IImport*>(action->data().value<QObject*>())->importDatabase(this,tmpdb)){
+-		PasswordDialog dlg(this,PasswordDialog::Mode_Set,PasswordDialog::Flag_None,QString());
++		PasswordDialog dlg(this,PasswordDialog::Mode_Set,PASSWORDDIALOG_FLAG_NONE,QString());
+ 		if(dlg.exec()!=PasswordDialog::Exit_Ok){
+ 			delete tmpdb;
+ 			return;
+@@ -1456,7 +1464,7 @@ void KeepassMainWindow::OnBookmarkTriggered(QAction* action){
+ 		}
+ 	}
+ 	else {
+-		openDatabase(KpxBookmarks::path(action->data().toInt()));
++		openFile(KpxBookmarks::path(action->data().toInt()));
+ 	}
+ }
+ 
+@@ -1490,6 +1498,9 @@ void KeepassMainWindow::setStatusBarMsg(StatusBarMsg statusBarMsg) {
+ 		case StatusBarReadOnlyLock:
+ 			text = tr("Couldn't create lock file. Opening the database read-only.");
+ 			break;
++		case StatusBarReadOnly:
++			text = tr("Opening the database read-only.");
++			break;
+ 	}
+ 	
+ 	statusbarState = statusBarMsg;
+diff --git a/src/mainwindow.h b/src/mainwindow.h
+index a9b8d67..002299a 100644
+--- a/src/mainwindow.h
++++ b/src/mainwindow.h
+@@ -96,7 +96,7 @@ class KeepassMainWindow : public QMainWindow, private Ui_MainWindow{
+ 		void resetLock();
+ 		enum StatusBarMsg {
+ 			StatusBarReady, StatusBarLoading, StatusBarLoadingFailed,
+-			StatusBarReadOnlyLock
++			StatusBarReadOnlyLock, StatusBarReadOnly
+ 		};
+ 		void setStatusBarMsg(StatusBarMsg statusBarMsg);
+ 		SelectionState GroupSelection, EntrySelection;
+diff --git a/src/translations/keepassx-ru_RU.ts b/src/translations/keepassx-ru_RU.ts
+index f85e93b..717005e 100644
+--- a/src/translations/keepassx-ru_RU.ts
++++ b/src/translations/keepassx-ru_RU.ts
+@@ -2076,6 +2076,10 @@ Do you want to save the changes?</source>
+         <translation>Не удалось создать файл блокирования базы паролей. База паролей будет открыта только для чтения.</translation>
+     </message>
+     <message>
++        <source>Opening the database read-only.</source>
++        <translation>База паролей будет открыта только для чтения.</translation>
++    </message>
++    <message>
+         <source>Information</source>
+         <translation type="obsolete">Информация</translation>
+     </message>
+@@ -2859,6 +2863,10 @@ File is not readable.</source>
+         <source>Passwords are not equal.</source>
+         <translation>Пароли не одинаковы.</translation>
+     </message>
++    <message>
++        <source>Open read-only</source>
++        <translation>Открыть только для чтения</translation>
++    </message>
+ </context>
+ <context>
+     <name>PwDatabase</name>
