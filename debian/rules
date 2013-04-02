@@ -2,25 +2,19 @@
 # -*- makefile -*-
 
 %:
-	dh $@
-
-override_dh_auto_configure:
-	qmake-qt4 -makefile -nocache QMAKE_STRIP=: PREFIX=/usr \
-		QMAKE_CXXFLAGS_RELEASE="$(CXXFLAGS)" \
-		QMAKE_CFLAGS_RELEASE="$(CFLAGS)" \
-		QMAKE_LFLAGS_RELEASE="$(LDFLAGS)"
+	dh $@ --parallel --buildsystem=qmake_qt4
 
 override_dh_auto_install:
-	dh_auto_install -- INSTALL_ROOT="$(CURDIR)/debian/keepassx"
-	
-	mkdir -p debian/keepassx/usr/share/icons/hicolor/16x16/apps
-	mkdir -p debian/keepassx/usr/share/icons/hicolor/24x24/apps
-	mkdir -p debian/keepassx/usr/share/icons/hicolor/32x32/apps
-	mkdir -p debian/keepassx/usr/share/icons/hicolor/48x48/apps
-	mkdir -p debian/keepassx/usr/share/icons/hicolor/64x64/apps
-	mkdir -p debian/keepassx/usr/share/icons/hicolor/128x128/apps
-	mkdir -p debian/keepassx/usr/share/icons/hicolor/scalable/apps
-	
+	dh_auto_install
+
+	mkdir -p debian/keepassx/usr/share/icons/hicolor/16x16/apps \
+	         debian/keepassx/usr/share/icons/hicolor/24x24/apps \
+	         debian/keepassx/usr/share/icons/hicolor/32x32/apps \
+	         debian/keepassx/usr/share/icons/hicolor/48x48/apps \
+	         debian/keepassx/usr/share/icons/hicolor/64x64/apps \
+	         debian/keepassx/usr/share/icons/hicolor/128x128/apps \
+	         debian/keepassx/usr/share/icons/hicolor/scalable/apps
+
 	cp share/keepassx/icons/keepassx_small.png \
 		debian/keepassx/usr/share/icons/hicolor/16x16/apps/keepassx.png
 	convert share/keepassx/icons/keepassx.png -resize 24x24 \
@@ -35,7 +29,7 @@ override_dh_auto_install:
 		debian/keepassx/usr/share/icons/hicolor/128x128/apps/keepassx.png
 	cp debian/keepassx.svg \
 		debian/keepassx/usr/share/icons/hicolor/scalable/apps/keepassx.svg
-	
+
 	rm debian/keepassx/usr/share/pixmaps/keepassx.xpm
 	cd debian/keepassx/usr/share/pixmaps && ln -s ../icons/hicolor/32x32/apps/keepassx.png .
 
