@@ -1,8 +1,8 @@
-diff --git a/README.rst b/README.rst
+diff --git a/README.md b/README.md
 new file mode 100644
-index 0000000..6eccfe9
+index 0000000..08c6a66
 --- /dev/null
-+++ b/README.rst
++++ b/README.md
 @@ -0,0 +1,17 @@
 +KeePassX with password database sharing
 +=======================================
@@ -12,13 +12,13 @@ index 0000000..6eccfe9
 +
 +All the changes are done against stock keepassx 0.4.3.
 +
-+What is done:
++## What is done
 +
 + * Don't keep database file open, close it just after loading.
 + * Option to open database file in read-only mode.
 + * Disabled "Save" button in read-only mode.
 +
-+TODO:
++## TODO
 +
 + * Disable all database changing actions in the GUI in read-only mode.
 diff --git a/src/Kdb3Database.cpp b/src/Kdb3Database.cpp
