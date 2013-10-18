@@ -1,8 +1,60 @@
-keepassx (0.4.3-1ubuntu3sharing4) oneiric; urgency=low
+keepassx (0.4.3+dfsg-0.1ubuntu1sharing4) saucy; urgency=low
 
   * Added database sharing patch revision 4
 
  -- Dmitry Frolov (Launchpad.net) <dmitry.frolov@gmail.com>  Mon, 18 Feb 2013 17:54:29 +0700
+
+keepassx (0.4.3+dfsg-0.1ubuntu1) raring; urgency=low
+
+  * Merge from Debian unstable, remaining changes:
+    - Build-depend on libmagickcore-extra instead of librsvg2-bin so
+      imagemagick correctly renders svg images. (LP: #979340)
+    - Add check_systray_available.diff:
+      - Check if the systray is available before using it.
+      - Disable the tray icon when running on Unity. (LP: #842224)
+
+ -- Felix Geyer <debfx@ubuntu.com>  Tue, 02 Apr 2013 17:44:07 +0200
+
+keepassx (0.4.3+dfsg-0.1) unstable; urgency=high
+
+  * Non-maintainer upload.
+  * Use repackaged upstream tarball by Felix Geyer, which replaces icons of
+    unknown origin (clientic.png text_block.png text_bold.png text_center.png
+    text_italic.png text_left.png text_right.png text_under.png) and adds full
+    text of associated licenses (LICENSE.LGPL-2.1 LICENSE.LGPL-3).
+  * Use patch by Felix Geyer to update debian/copyright with the origin and
+    license of png files, and update README.source accordingly.
+  * Additionally, update debian/copyright to document the origin and copyright
+    of go-*.png and help_about.png icons (project Oxygen, and license CC-BY-SA
+    3.0 or LGPL respectively).
+  * The above three items close #698832
+  * Update debian/watch for version mangling.
+  * Setting high urgency due to RC bug.
+
+ -- Serafeim Zanikolas <sez@debian.org>  Wed, 20 Mar 2013 14:04:39 +0100
+
+keepassx (0.4.3-2ubuntu1) raring; urgency=low
+
+  * Merge from Debian unstable. (LP: #1094568) Remaining changes:
+    - Add check_systray_available.diff
+    - Disable the tray icon when running on Unity. (LP: #842224)
+
+ -- Alessandro Losavio <alessandro.losavio@yahoo.com>  Sun, 30 Dec 2012 09:39:20 +0000
+
+keepassx (0.4.3-2) unstable; urgency=low
+
+  * Fix FTBFS with gcc 4.7. (Closes: #667224)
+    - Add fix_ftbfs_gcc47.diff
+  * Bump Standards-Version to 3.9.3, no changes needed.
+  * Enable parallel building.
+  * Switch to debhelper compat level v9.
+    - Exports build flags.
+  * Use the qmake_qt4 dh buildsystem.
+  * Install application icon in various resolutions.
+    - Add debian/keepassx.svg
+    - Build-depend on imagemagick and librsvg2-bin.
+
+ -- Felix Geyer <debfx-pkg@fobos.de>  Thu, 05 Apr 2012 13:10:22 +0200
 
 keepassx (0.4.3-1ubuntu3) quantal; urgency=low
 
@@ -163,4 +215,3 @@ keepassx (0.2.2-0ubuntu1) edgy; urgency=low
   * Initial release
 
  -- David Valot <ptitdav69@gmail.com>  Wed,  6 Sep 2006 21:07:02 +0200
-
